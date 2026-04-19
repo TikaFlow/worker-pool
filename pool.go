@@ -1,14 +1,15 @@
-// Package pool 提供一个高效、安全、易用的 worker pool 实现
+// Package pool 是一个高效、安全、易用的 worker pool 实现
 //
 // 支持两种使用方式：
-//   1. 使用默认 pool（推荐，开箱即用）
-//      pool.Add(func() { ... })
-//      pool.CloseAndWait()
 //
-//   2. 创建自定义 pool（需要自定义 worker 数量时）
-//      myPool := pool.New(20)
-//      myPool.Add(func() { ... })
-//      myPool.CloseAndWait()
+//  1. 使用默认 pool（推荐，开箱即用）
+//     pool.Add(func() { ... })
+//     pool.CloseAndWait()
+//
+//  2. 创建自定义 pool（需要自定义 worker 数量时）
+//     myPool := pool.New(20)
+//     myPool.Add(func() { ... })
+//     myPool.CloseAndWait()
 //
 // 特性：
 //   - 并发安全：无锁设计，高性能
@@ -37,7 +38,7 @@ import (
 
 var (
 	defaultWorkerCount int
-	defaultPool *workerPool
+	defaultPool        *workerPool
 )
 
 // PanicHandler 定义 panic 处理函数类型
@@ -53,11 +54,11 @@ type workerTask func()
 
 // workerPool 保存worker pool的数据
 type workerPool struct {
-	taskCh chan workerTask     // 任务通道
-	workerCount int            // 并发上限
-	closeOnce sync.Once        // 保证 Close 只执行一次
-	wg sync.WaitGroup          // 等待所有 worker 退出
-	panicHandler atomic.Value  // panic 处理钩子，原子操作保证安全
+	taskCh       chan workerTask // 任务通道
+	workerCount  int             // 并发上限
+	closeOnce    sync.Once       // 保证 Close 只执行一次
+	wg           sync.WaitGroup  // 等待所有 worker 退出
+	panicHandler atomic.Value    // panic 处理钩子，原子操作保证安全
 }
 
 // New 创建一个新的worker pool
