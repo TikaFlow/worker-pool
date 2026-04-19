@@ -36,16 +36,18 @@ import (
 	"sync/atomic"
 )
 
+const (
+	defaultWorkerCount int = 8
+)
+
 var (
-	defaultWorkerCount int
-	defaultPool        *workerPool
+	defaultPool *workerPool
 )
 
 // PanicHandler 定义 panic 处理函数类型
 type PanicHandler func(any)
 
 func init() {
-	defaultWorkerCount = 8
 	defaultPool = New(defaultWorkerCount)
 }
 
@@ -92,9 +94,6 @@ func (wp *workerPool) SetPanicHandler(handler PanicHandler) {
 
 // Add 向默认worker pool添加任务
 func Add(task workerTask) {
-	if task == nil {
-		return
-	}
 	defaultPool.Add(task)
 }
 
@@ -117,7 +116,7 @@ func Close() error {
 	return defaultPool.Close()
 }
 
-// Close 关闭worker pool，实现io.Closer接口
+// Close 关闭worker pool
 func (wp *workerPool) Close() error {
 	wp.closeOnce.Do(func() {
 		close(wp.taskCh)
