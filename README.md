@@ -72,6 +72,7 @@ func main() {
 | `New(workerCount int, cfg *Config) Pool` | 创建 worker pool，返回接口类型 |
 | `Config` | 配置项结构体 |
 | `Config.PanicHandler` | Panic 处理函数 |
+| `Config.BufferSize` | 任务通道缓冲大小，默认取 `workerCount*2` 与 16 的较大值 |
 | `Pool.Add(task func())` | 添加任务 |
 | `Pool.Close() error` | 关闭并等待所有 worker 退出，实现 io.Closer |
 | `Pool.CloseNoWait() error` | 关闭但不等待 worker 退出 |

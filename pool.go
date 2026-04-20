@@ -41,6 +41,7 @@ type Pool interface {
 
 type Config struct {
 	PanicHandler func(any)
+	BufferSize   int
 }
 
 type workerTask func()
@@ -58,8 +59,17 @@ func New(workerCount int, cfg *Config) Pool {
 		workerCount = 1
 	}
 
+	bufferSize := workerCount * 2
+	if bufferSize < 16 {
+		bufferSize = 16
+	}
+
+	if cfg != nil && cfg.BufferSize > 0 {
+		bufferSize = cfg.BufferSize
+	}
+
 	p := &workerPool{
-		taskCh:       make(chan workerTask, workerCount*2),
+		taskCh:       make(chan workerTask, bufferSize),
 		workerCount:  workerCount,
 		panicHandler: func(any) {},
 	}
