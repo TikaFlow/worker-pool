@@ -6,7 +6,8 @@
 
 - **并发安全**：无锁设计，高性能
 - **Panic 保护**：任务 panic 不会导致 worker 退出，可配置钩子处理
-- **优雅关闭**：支持 Close()（不等待）和 CloseAndWait()（等待所有任务完成）
+- **优雅关闭**：支持 Close()（等待）和 CloseNoWait()（不等待）
+- **接口设计**：返回接口类型，方便定义变量
 
 ## 安装
 
@@ -26,11 +27,9 @@ import (
 )
 
 func main() {
-	// 创建 pool（8 个 worker，nil 表示无额外配置）
 	p := pool.New(8, nil)
-	defer p.CloseAndWait()
+	defer p.Close()
 
-	// 添加任务
 	p.Add(func() {
 		fmt.Println("执行任务 1")
 	})
@@ -53,13 +52,12 @@ import (
 )
 
 func main() {
-	// 创建带 panic handler 的 pool
 	p := pool.New(8, &pool.Config{
 		PanicHandler: func(r any) {
 			log.Printf("任务 panic: %v", r)
 		},
 	})
-	defer p.CloseAndWait()
+	defer p.Close()
 
 	p.Add(func() {
 		panic("测试 panic")
@@ -69,21 +67,22 @@ func main() {
 
 ## API 文档
 
-| 函数/类型                                | 说明                                        |
-| ------------------------------------ | ----------------------------------------- |
-| `New(workerCount int, cfg *Config)`  | 创建 worker pool，workerCount 为并发上限，cfg 为配置项 |
-| `Config`                             | 配置项结构体                                    |
-| `Config.PanicHandler`                | Panic 处理函数，参数类型为 any（与 recover() 返回类型一致）  |
-| `(*workerPool).Add(task func())`     | 添加任务                                      |
-| `(*workerPool).Close() error`        | 关闭（不等待）                                   |
-| `(*workerPool).CloseAndWait() error` | 关闭并等待所有任务完成                               |
+| 函数/类型 | 说明 |
+|----------|------|
+| `New(workerCount int, cfg *Config) Pool` | 创建 worker pool，返回接口类型 |
+| `Config` | 配置项结构体 |
+| `Config.PanicHandler` | Panic 处理函数 |
+| `Pool.Add(task func())` | 添加任务 |
+| `Pool.Close() error` | 关闭并等待所有 worker 退出，实现 io.Closer |
+| `Pool.CloseNoWait() error` | 关闭但不等待 worker 退出 |
 
 ## 设计特点
 
 1. **懒加载关闭保护**：Close() 后调用 Add() 会被静默忽略，不会 panic
 2. **并发安全**：使用 sync.Once，无数据竞争
 3. **高性能**：无锁设计，直接通过 channel 通信
-4. **配置简洁**：结构体配置，nil 表示无额外配置，简单直观，易于扩展
+4. **接口设计**：返回接口类型，便于面向接口编程
+5. **配置简洁**：结构体配置，nil 表示无额外配置
 
 ## 许可证
 

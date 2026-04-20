@@ -4,12 +4,12 @@
 //
 //	myPool := pool.New(20, nil)
 //	myPool.Add(func() { ... })
-//	myPool.CloseAndWait()
+//	myPool.Close()
 //
 // 特性：
 //   - 并发安全：无锁设计，高性能
 //   - Panic 保护：任务 panic 不会导致 worker 退出，可配置钩子处理
-//   - 优雅关闭：支持 Close()（不等待）和 CloseAndWait()（等待所有任务完成）
+//   - 优雅关闭：支持 Close()（等待）和 CloseNoWait()（不等待）
 //
 // 示例：
 //
@@ -18,7 +18,7 @@
 //	p.Add(func() {
 //	    fmt.Println("执行任务")
 //	})
-//	p.CloseAndWait()
+//	p.Close()
 //
 //	// 配置 panic 处理
 //	p := pool.New(8, &pool.Config{
@@ -29,19 +29,22 @@
 package pool
 
 import (
+	"io"
 	"sync"
 )
 
-// Config 配置项
+type Pool interface {
+	io.Closer
+	Add(task workerTask)
+	CloseNoWait() error
+}
+
 type Config struct {
-	// PanicHandler 任务 panic 处理函数
 	PanicHandler func(any)
 }
 
-// workerTask 无参无返回值的任务函数
 type workerTask func()
 
-// workerPool 保存 worker pool 的数据
 type workerPool struct {
 	taskCh       chan workerTask
 	workerCount  int
@@ -50,10 +53,7 @@ type workerPool struct {
 	panicHandler func(any)
 }
 
-// New 创建一个新的 worker pool
-// workerCount: 并发上限，必须大于 0
-// cfg: 配置项，nil 表示无额外配置
-func New(workerCount int, cfg *Config) *workerPool {
+func New(workerCount int, cfg *Config) Pool {
 	if workerCount <= 0 {
 		workerCount = 1
 	}
@@ -61,7 +61,7 @@ func New(workerCount int, cfg *Config) *workerPool {
 	p := &workerPool{
 		taskCh:       make(chan workerTask, workerCount*2),
 		workerCount:  workerCount,
-		panicHandler: func(any) {}, // 默认空函数，确保不为 nil
+		panicHandler: func(any) {},
 	}
 
 	if cfg != nil && cfg.PanicHandler != nil {
@@ -72,7 +72,6 @@ func New(workerCount int, cfg *Config) *workerPool {
 	return p
 }
 
-// Add 向 worker pool 添加任务
 func (wp *workerPool) Add(task workerTask) {
 	if task == nil {
 		return
@@ -86,22 +85,19 @@ func (wp *workerPool) Add(task workerTask) {
 	}()
 }
 
-// Close 关闭 worker pool
 func (wp *workerPool) Close() error {
+	wp.CloseNoWait()
+	wp.wg.Wait()
+	return nil
+}
+
+func (wp *workerPool) CloseNoWait() error {
 	wp.closeOnce.Do(func() {
 		close(wp.taskCh)
 	})
 	return nil
 }
 
-// CloseAndWait 关闭 worker pool 并等待所有 worker 退出
-func (wp *workerPool) CloseAndWait() error {
-	wp.Close()
-	wp.wg.Wait()
-	return nil
-}
-
-// worker 私有方法：worker 执行任务
 func (wp *workerPool) worker() {
 	defer wp.wg.Done()
 	for task := range wp.taskCh {
@@ -116,7 +112,6 @@ func (wp *workerPool) worker() {
 	}
 }
 
-// start 私有方法：启动 worker
 func (wp *workerPool) start() {
 	wp.wg.Add(wp.workerCount)
 	for i := 0; i < wp.workerCount; i++ {
