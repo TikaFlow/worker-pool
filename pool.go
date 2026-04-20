@@ -34,6 +34,7 @@ import (
 
 // Config 配置项
 type Config struct {
+	// PanicHandler 任务 panic 处理函数
 	PanicHandler func(any)
 }
 
@@ -51,7 +52,7 @@ type workerPool struct {
 
 // New 创建一个新的 worker pool
 // workerCount: 并发上限，必须大于 0
-// cfg: 配置项，nil 表示使用默认配置
+// cfg: 配置项，nil 表示无额外配置
 func New(workerCount int, cfg *Config) *workerPool {
 	if workerCount <= 0 {
 		workerCount = 1

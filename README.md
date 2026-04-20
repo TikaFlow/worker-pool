@@ -26,7 +26,7 @@ import (
 )
 
 func main() {
-	// 创建 pool（8 个 worker，nil 表示使用默认配置）
+	// 创建 pool（8 个 worker，nil 表示无额外配置）
 	p := pool.New(8, nil)
 	defer p.CloseAndWait()
 
@@ -69,21 +69,21 @@ func main() {
 
 ## API 文档
 
-| 函数/类型 | 说明 |
-|----------|------|
-| `New(workerCount int, cfg *Config)` | 创建 worker pool，workerCount 为并发上限，cfg 为配置项，nil 表示使用默认配置 |
-| `Config` | 配置项结构体 |
-| `Config.PanicHandler` | Panic 处理函数，参数类型为 any（与 recover() 返回类型一致） |
-| `(*workerPool).Add(task func())` | 添加任务 |
-| `(*workerPool).Close() error` | 关闭（不等待） |
-| `(*workerPool).CloseAndWait() error` | 关闭并等待所有任务完成 |
+| 函数/类型                                | 说明                                        |
+| ------------------------------------ | ----------------------------------------- |
+| `New(workerCount int, cfg *Config)`  | 创建 worker pool，workerCount 为并发上限，cfg 为配置项 |
+| `Config`                             | 配置项结构体                                    |
+| `Config.PanicHandler`                | Panic 处理函数，参数类型为 any（与 recover() 返回类型一致）  |
+| `(*workerPool).Add(task func())`     | 添加任务                                      |
+| `(*workerPool).Close() error`        | 关闭（不等待）                                   |
+| `(*workerPool).CloseAndWait() error` | 关闭并等待所有任务完成                               |
 
 ## 设计特点
 
 1. **懒加载关闭保护**：Close() 后调用 Add() 会被静默忽略，不会 panic
 2. **并发安全**：使用 sync.Once，无数据竞争
 3. **高性能**：无锁设计，直接通过 channel 通信
-4. **配置简洁**：结构体配置，nil 表示使用默认配置，简单直观，易于扩展
+4. **配置简洁**：结构体配置，nil 表示无额外配置，简单直观，易于扩展
 
 ## 许可证
 
